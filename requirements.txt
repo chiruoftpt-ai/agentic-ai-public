@@ -1,6 +1,6 @@
 fastapi
 uvicorn[standard]
-sqlalchemy
+sqlalchemy<2.1
 psycopg2-binary
 python-dotenv
 jinja2
@@ -19,4 +19,4 @@ pymupdf           # optional but recommended for faster/better PDF text extracti
 python-dotenv
 
 # SQLite via SQLAlchemy
-SQLAlchemy
+SQLAlchemy<2.1
