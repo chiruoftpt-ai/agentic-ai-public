@@ -20,3 +20,4 @@ python-dotenv
 
 # SQLite via SQLAlchemy
 SQLAlchemy<2.1
+langfuse>=4,<5

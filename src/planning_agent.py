@@ -9,6 +9,8 @@ from src.agents import (
     editor_agent,
 )
 
+from src.tracing import observe, traced_chat
+
 client = Client()
 
 
@@ -24,6 +26,7 @@ from typing import List
 import json, ast
 
 
+@observe(name="planner_agent", as_type="agent")
 def planner_agent(topic: str, model: str = "openai:o4-mini") -> List[str]:
     prompt = f"""
 You are a planning agent responsible for organizing a research workflow using multiple intelligent agents.
@@ -55,9 +58,11 @@ Maximum of 7 steps.
 Topic: "{topic}"
 """
 
-    response = client.chat.completions.create(
-        model=model,
-        messages=[{"role": "user", "content": prompt}],
+    response = traced_chat(
+        client,
+        "planner_llm",
+        model,
+        [{"role": "user", "content": prompt}],
         temperature=1,
     )
 
@@ -133,6 +138,7 @@ Topic: "{topic}"
     return steps
 
 
+@observe(name="executor_agent_step")
 def executor_agent_step(step_title: str, history: list, prompt: str):
     """
     Executes a step of the executor agent.

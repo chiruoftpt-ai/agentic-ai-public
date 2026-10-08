@@ -7,10 +7,13 @@ from src.research_tools import (
     wikipedia_search_tool,
 )
 
+from src.tracing import observe, traced_chat
+
 client = Client()
 
 
 # === Research Agent ===
+@observe(name="research_agent", as_type="agent")
 def research_agent(
     prompt: str, model: str = "openai:gpt-4.1-mini", return_messages: bool = False
 ):
@@ -80,9 +83,11 @@ USER RESEARCH REQUEST:
     tools = [arxiv_search_tool, tavily_search_tool, wikipedia_search_tool]
 
     try:
-        resp = client.chat.completions.create(
-            model=model,
-            messages=messages,
+        resp = traced_chat(
+            client,
+            "research_llm",
+            model,
+            messages,
             tools=tools,
             tool_choice="auto",
             max_turns=5,
@@ -152,6 +157,7 @@ USER RESEARCH REQUEST:
         return f"[Model Error: {str(e)}]", messages
 
 
+@observe(name="writer_agent", as_type="agent")
 def writer_agent(
     prompt: str,
     model: str = "openai:gpt-4.1-mini",
@@ -226,9 +232,11 @@ INTERNAL CHECKLIST (DO NOT INCLUDE IN OUTPUT):
     ]
 
     def _call(messages_):
-        resp = client.chat.completions.create(
-            model=model,
-            messages=messages_,
+        resp = traced_chat(
+            client,
+            "writer_llm",
+            model,
+            messages_,
             temperature=0,
             max_tokens=max_tokens,
         )
@@ -246,6 +254,7 @@ INTERNAL CHECKLIST (DO NOT INCLUDE IN OUTPUT):
     return content, messages
 
 
+@observe(name="editor_agent", as_type="agent")
 def editor_agent(
     prompt: str,
     model: str = "openai:gpt-4.1-mini",
@@ -287,9 +296,7 @@ Return only the revised, polished text in Markdown format without explanatory co
         {"role": "user", "content": prompt},
     ]
 
-    response = client.chat.completions.create(
-        model=model, messages=messages, temperature=0
-    )
+    response = traced_chat(client, "editor_llm", model, messages, temperature=0)
 
     content = response.choices[0].message.content
     print("✅ Output:\n", content)

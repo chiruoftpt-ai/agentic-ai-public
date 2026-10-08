@@ -15,6 +15,7 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from dotenv import load_dotenv
 
 from src.planning_agent import planner_agent, executor_agent_step
+from src.tracing import observe, propagate_attributes
 
 import html, textwrap
 
@@ -133,6 +134,12 @@ def format_history(history):
 
 
 def run_agent_workflow(task_id: str, prompt: str, initial_plan_steps: list):
+    with propagate_attributes(session_id=task_id, trace_name="research_workflow"):
+        return _run_agent_workflow(task_id, prompt, initial_plan_steps)
+
+
+@observe(name="research_workflow")
+def _run_agent_workflow(task_id: str, prompt: str, initial_plan_steps: list):
     steps_data = task_progress[task_id]["steps"]
     execution_history = []
 
@@ -204,6 +211,7 @@ def run_agent_workflow(task_id: str, prompt: str, initial_plan_steps: list):
         task.updated_at = datetime.utcnow()
         db.commit()
         db.close()
+        return final_report_markdown
 
     except Exception as e:
         print(f"Workflow error for task {task_id}: {e}")
